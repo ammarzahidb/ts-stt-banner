@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XGPT Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/open-sauce-one" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0b1120;
+    --card-bg: #111d2e;
+    --card-border: rgba(255,255,255,0.06);
+    --accent-red: #e5383b;
+    --accent-red-hover: #ff4548;
+    --accent-red-glow: rgba(229,56,59,0.3);
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --chart-color: #3b82f6;
+    --chart-glow: rgba(59,130,246,0.25);
+    --text-primary: #f0f2f5;
+    --text-secondary: #8a95a5;
+    --text-muted: #4e5d72;
+    --gain-bg: rgba(59,130,246,0.1);
+    --gain-border: rgba(59,130,246,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary);
+    padding: 20px;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,10,20,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .popup {
+    position: relative;
+    z-index: 100;
+    width: 100%;
+    max-width: 420px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    overflow: hidden;
+    animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 24px 80px rgba(0,0,0,0.6),
+      0 0 100px -30px var(--chart-glow);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+    z-index: 10;
+    line-height: 1;
+  }
+  .close-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .top-bar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-red));
+  }
+
+  .chart-area {
+    position: relative;
+    padding: 28px 28px 0;
+    height: 175px;
+    overflow: hidden;
+  }
+  .chart-area canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-badge {
+    position: absolute;
+    top: 22px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--gain-bg);
+    border: 1px solid var(--gain-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    letter-spacing: 0.02em;
+  }
+  .chart-badge svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .entry-marker {
+    position: absolute;
+    bottom: 58px;
+    left: 28%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  .entry-marker .dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--chart-glow);
+  }
+  .entry-marker .label {
+    margin-top: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+  }
+
+  .content {
+    padding: 28px 28px 24px;
+  }
+
+  .headline {
+    font-family: 'Open Sauce Sans', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .headline .highlight {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtext {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+
+  .trust-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .trust-item .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .trust-item .icon svg {
+    width: 14px;
+    height: 14px;
+    color: var(--accent-blue);
+  }
+
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent-red);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cta-btn:hover {
+    background: var(--accent-red-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px var(--accent-red-glow);
+  }
+  .cta-btn:active {
+    transform: translateY(0);
+  }
+
+  .no-thanks {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 14px;
+    padding: 8px;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .no-thanks:hover {
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 460px) {
+    .popup { border-radius: 16px; }
+    .content { padding: 22px 22px 20px; }
+    .headline { font-size: 22px; }
+    .chart-area { height: 150px; padding: 28px 22px 0; }
+    .trust-row { gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay"></div>
+
+<div class="popup">
+  <div class="top-bar"></div>
+  <button class="close-btn" aria-label="Close">&times;</button>
+
+  <div class="chart-area">
+    <canvas id="chart"></canvas>
+    <div class="chart-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      NVDA +238%
+    </div>
+    <div class="entry-marker">
+      <div class="dot"></div>
+      <span class="label">XGPT alert</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <h2 class="headline">
+      Tired of missing<br><span class="highlight">big AI moves like Nvidia?</span>
+    </h2>
+    <p class="subtext">
+      Tim's XGPT tracks breaking AI news and shows you when to trade.
+    </p>
+
+    <div class="trust-row">
+      <div class="trust-item">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        AI-backed
+      </div>
+      <div class="trust-item">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        Real-time alerts
+      </div>
+      <div class="trust-item">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        Beginner-friendly
+      </div>
+    </div>
+
+    <button class="cta-btn">Watch the System in Action</button>
+    <button class="no-thanks">No thanks, I'll pass</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = (H / 5) * i;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  const points = [];
+  const segments = 80;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    let y;
+    if (t < 0.3) {
+      y = 0.55 + Math.sin(t * 12) * 0.04 - t * 0.1;
+    } else if (t < 0.38) {
+      y = 0.45 + (t - 0.3) * 0.5;
+    } else {
+      const progress = (t - 0.38) / 0.62;
+      y = 0.55 - progress * 0.45 + Math.sin(t * 20) * 0.015;
+    }
+    points.push({ x: t * W, y: y * H });
+  }
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, 'rgba(59,130,246,0.18)');
+  gradient.addColorStop(0.5, 'rgba(59,130,246,0.04)');
+  gradient.addColorStop(1, 'rgba(59,130,246,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  const last = points[points.length - 1];
+  ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
+  ctx.lineTo(last.x, H);
+  ctx.lineTo(points[0].x, H);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+  lineGrad.addColorStop(0, '#3b82f6');
+  lineGrad.addColorStop(0.6, '#6366f1');
+  lineGrad.addColorStop(1, '#8b5cf6');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#8b5cf6';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(139,92,246,0.2)';
+  ctx.fill();
+}
+
+draw();
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>

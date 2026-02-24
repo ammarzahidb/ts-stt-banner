@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supernova Stocks Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/open-sauce-one" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep: #0a1e5e;
+    --blue-mid: #112878;
+    --gold: #e8a825;
+    --gold-hover: #f5b82e;
+    --gold-glow: rgba(232,168,37,0.3);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255,255,255,0.7);
+    --text-muted: rgba(255,255,255,0.4);
+    --chart-green: #34d399;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--blue-deep);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary);
+    padding: 20px;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,12,40,0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .popup {
+    position: relative;
+    z-index: 100;
+    width: 100%;
+    max-width: 420px;
+    background: var(--blue-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    overflow: hidden;
+    animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 24px 80px rgba(0,0,0,0.5),
+      0 0 120px -40px rgba(232,168,37,0.12);
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    z-index: 20;
+    line-height: 1;
+  }
+  .close-btn:hover {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-color: rgba(255,255,255,0.25);
+  }
+
+  .top-bar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), #f5d060, var(--gold));
+  }
+
+  /* Chart area */
+  .chart-area {
+    position: relative;
+    height: 200px;
+    overflow: visible;
+    background: rgba(0,0,0,0.15);
+  }
+  .chart-area canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .chart-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
+
+  .chart-badge {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(232,168,37,0.12);
+    border: 1px solid rgba(232,168,37,0.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+  .chart-badge svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Content */
+  .content {
+    padding: 28px 28px 24px;
+  }
+
+  .headline {
+    font-family: 'Open Sauce Sans', sans-serif;
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    color: #fff;
+  }
+  .headline .highlight {
+    color: var(--gold);
+  }
+
+  .subtext {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+  .subtext strong {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* Checklist */
+  .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .checklist-item .check {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(52,211,153,0.12);
+    border: 1px solid rgba(52,211,153,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .checklist-item .check svg {
+    width: 12px;
+    height: 12px;
+    color: var(--chart-green);
+  }
+
+  /* Gold CTA */
+  .cta-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--gold);
+    color: var(--blue-deep);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cta-btn:hover {
+    background: var(--gold-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px var(--gold-glow);
+  }
+  .cta-btn:active { transform: translateY(0); }
+
+  .no-thanks {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 14px;
+    padding: 8px;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .no-thanks:hover { color: var(--text-secondary); }
+
+  /* Sparkles */
+  .sparkle {
+    position: absolute;
+    color: rgba(255,255,255,0.06);
+    font-size: 14px;
+    font-weight: 300;
+    pointer-events: none;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  .sparkle-1 { top: 90px; right: 45px; animation-delay: 0s; }
+  .sparkle-2 { top: 280px; left: 18px; animation-delay: 1s; }
+  .sparkle-3 { bottom: 100px; right: 24px; animation-delay: 2s; }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.3); }
+  }
+
+  @media (max-width: 460px) {
+    .popup { border-radius: 16px; }
+    .content { padding: 22px 22px 20px; }
+    .headline { font-size: 22px; }
+    .chart-area { height: 170px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay"></div>
+
+<div class="popup">
+  <div class="top-bar"></div>
+  <button class="close-btn" aria-label="Close">&times;</button>
+
+  <span class="sparkle sparkle-1">+</span>
+  <span class="sparkle sparkle-2">+</span>
+  <span class="sparkle sparkle-3">+</span>
+
+  <div class="chart-area">
+    <canvas id="chart"></canvas>
+    <div class="chart-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      Supernova pattern
+    </div>
+  </div>
+
+  <div class="content">
+    <h2 class="headline">
+      A new breed of traders is targeting <span class="highlight">"forbidden"</span> stocks.
+    </h2>
+    <p class="subtext">
+      Wall Street won't touch these <strong>"Supernova Stocks"</strong> — but they can move fast. New video training reveals the step-by-step plan for spotting the next one.
+    </p>
+
+    <div class="checklist">
+      <div class="checklist-item">
+        <div class="check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        Video training + checklists included
+      </div>
+      <div class="checklist-item">
+        <div class="check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        Beginner-friendly — no experience needed
+      </div>
+    </div>
+
+    <button class="cta-btn">Get the Supernova Playbook →</button>
+    <button class="no-thanks">No thanks, I'll pass</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width;
+  const H = rect.height;
+
+  const padX = 24;
+  const padTop = 50;
+  const padBot = 16;
+  const chartW = W - padX * 2;
+  const chartH = H - padTop - padBot;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 5; i++) {
+    const y = padTop + (chartH / 5) * i;
+    ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(W - padX, y); ctx.stroke();
+  }
+
+  // Supernova chart — flat base then explosive spike
+  const points = [];
+  const segments = 100;
+  let spikeStart = null;
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    let yNorm;
+
+    if (t < 0.55) {
+      yNorm = 0.72 + Math.sin(t * 18) * 0.03 - t * 0.05;
+    } else if (t < 0.65) {
+      const p = (t - 0.55) / 0.1;
+      yNorm = 0.69 - p * 0.2 + Math.sin(t * 30) * 0.015;
+    } else if (t < 0.72) {
+      const p = (t - 0.65) / 0.07;
+      yNorm = 0.49 + p * 0.08;
+    } else {
+      const p = (t - 0.72) / 0.28;
+      const exp = Math.pow(p, 1.8);
+      yNorm = 0.57 - exp * 0.52 + Math.sin(t * 40) * 0.008;
+    }
+
+    const x = padX + t * chartW;
+    const y = padTop + yNorm * chartH;
+    points.push({ x, y });
+
+    if (i === Math.round(segments * 0.55)) {
+      spikeStart = { x, y };
+    }
+  }
+
+  // Green gradient fill (Sykes brand)
+  const gradient = ctx.createLinearGradient(0, padTop, 0, H);
+  gradient.addColorStop(0, 'rgba(52,211,153,0.15)');
+  gradient.addColorStop(0.4, 'rgba(52,211,153,0.04)');
+  gradient.addColorStop(1, 'rgba(52,211,153,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  const last = points[points.length - 1];
+  ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
+  ctx.lineTo(last.x, padTop + chartH + padBot);
+  ctx.lineTo(points[0].x, padTop + chartH + padBot);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Line — green to gold (Sykes palette)
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) {
+    const cp = { x: (points[i-1].x + points[i].x) / 2, y: (points[i-1].y + points[i].y) / 2 };
+    ctx.quadraticCurveTo(points[i-1].x, points[i-1].y, cp.x, cp.y);
+  }
+  const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+  lineGrad.addColorStop(0, '#34d399');
+  lineGrad.addColorStop(0.6, '#60dba8');
+  lineGrad.addColorStop(1, '#e8a825');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // End glow — gold
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#e8a825';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 12, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(232,168,37,0.2)';
+  ctx.fill();
+
+  // Supernova label at spike start
+  if (spikeStart) {
+    // Dot + glow
+    ctx.beginPath();
+    ctx.arc(spikeStart.x, spikeStart.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8a825';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(spikeStart.x, spikeStart.y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(232,168,37,0.12)';
+    ctx.fill();
+
+    // Label
+    const label = 'SUPERNOVA';
+    ctx.font = '700 9px "DM Sans", sans-serif';
+    const labelW = ctx.measureText(label).width + 14;
+    const labelH = 20;
+    const labelX = spikeStart.x - labelW / 2;
+    const labelY = spikeStart.y + 28;
+
+    // Arrow pointing up from label to dot
+    const arrowX = spikeStart.x;
+    ctx.save();
+    ctx.strokeStyle = '#e8a825';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, labelY - 2);
+    ctx.lineTo(arrowX, spikeStart.y + 13);
+    ctx.stroke();
+    ctx.fillStyle = '#e8a825';
+    ctx.beginPath();
+    ctx.moveTo(arrowX, spikeStart.y + 12);
+    ctx.lineTo(arrowX - 3.5, spikeStart.y + 17);
+    ctx.lineTo(arrowX + 3.5, spikeStart.y + 17);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Pill bg
+    const r = 5;
+    ctx.beginPath();
+    ctx.moveTo(labelX + r, labelY);
+    ctx.lineTo(labelX + labelW - r, labelY);
+    ctx.arcTo(labelX + labelW, labelY, labelX + labelW, labelY + r, r);
+    ctx.lineTo(labelX + labelW, labelY + labelH - r);
+    ctx.arcTo(labelX + labelW, labelY + labelH, labelX + labelW - r, labelY + labelH, r);
+    ctx.lineTo(labelX + r, labelY + labelH);
+    ctx.arcTo(labelX, labelY + labelH, labelX, labelY + labelH - r, r);
+    ctx.lineTo(labelX, labelY + r);
+    ctx.arcTo(labelX, labelY, labelX + r, labelY, r);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(232,168,37,0.15)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(232,168,37,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = '#e8a825';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, spikeStart.x, labelY + labelH / 2);
+    ctx.textAlign = 'start';
+  }
+}
+
+draw();
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>
